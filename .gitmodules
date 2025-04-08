@@ -1,0 +1,9 @@
+[submodule "OtterGui"]
+	path = OtterGui
+	url = https://github.com/Ottermandias/OtterGui.git
+[submodule "ECommons"]
+	path = ECommons
+	url = https://github.com/NightmareXIV/ECommons.git
+[submodule "NostraLib"]
+	path = NostraLib
+	url = https://github.com/nostrathomas99/NostraLib

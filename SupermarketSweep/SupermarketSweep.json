@@ -1,0 +1,21 @@
+{
+  "Author": "NostraThomas",
+  "Name": "Supermarket Sweep",
+  "InternalName": "SupermarketSweep",
+  "Description": "Makes shopping on the Marketboard easier by using Lifestream and vnavmesh to move you between servers automatically while helping you find the best prices.",
+  "ApplicableVersion": "any",
+  "DalamudApiLevel": 12,
+  "TestingDalamudApiLevel": 12,
+  "Tags": [
+    "Marketboard",
+    "Sweep",
+    "Shopping",
+    "Lists"
+  ],
+  "CategoryTags": [
+    "Utility"
+  ],
+  "IsTestingExclusive": false,
+  "Punchline": "Are you ready to go shopping?!",
+  "AcceptsFeedback": true
+}
