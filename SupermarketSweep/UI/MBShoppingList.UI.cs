@@ -240,13 +240,6 @@ public class MBShoppingList_UI : NostraWindow
             ImGui.Text("This item cannot be purchased on the Market Board");
         }
 
-        var individualItem = SupermarketSweep.Config.ShowIndividualListings;
-        if (ImGui.Checkbox("Show individual listings", ref individualItem))
-        {
-            SupermarketSweep.Config.ShowIndividualListings = individualItem;
-            EzConfig.Save();
-        }
-
         // If data is present, display it
         if (item.MarketDataResponse != null && !item.IsFetchingData)
         {
@@ -292,56 +285,40 @@ public class MBShoppingList_UI : NostraWindow
     }
 
     private string _searchTerm = string.Empty;
-    private Item? _selectedItem;
 
     private void DrawItemAdd()
     {
+        ImGui.Text("Item Search");
+        ImGui.SameLine();
         ImGui.InputText("##searchBar", ref _searchTerm, 100);
 
-        if (!string.IsNullOrEmpty(_searchTerm) && _selectedItem is null)
+        ImGui.BeginChild($"ItemList", new Vector2(0, 100), true);
+        if (!string.IsNullOrEmpty(_searchTerm))
         {
-            var matchingItems = SupermarketSweep.MarketableItems.Where(item =>
+            var matchingItems = SupermarketSweep.AllItems.Where(item =>
                 item.Name.ToString().Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
 
             if (matchingItems.Any())
             {
-                ImGui.BeginChild($"ItemList", new Vector2(0, 150), true);
                 foreach (var item in matchingItems)
                 {
                     if (ImGui.Selectable(item.Name.ToString()))
                     {
-                        _selectedItem = item;
-                        _searchTerm = item.Name.ToString();
+                        var wantedItem = new ShoppingListItem(item, 1);
+                        _manager.WantedItems.Add(wantedItem);
+                        _manager.SaveList();
+                        Svc.Log.Debug($"Added shopping list item: {item.Name}");
+                        _searchTerm = string.Empty;
                     }
                 }
-
-                ImGui.EndChild();
             }
         }
-
-        ImGui.SameLine();
-        if (ImGui.Button("Add"))
+        else
         {
-            if (_selectedItem is null)
-            {
-                Svc.Log.Warning("No item to add to shopping list");
-                return;
-            }
-
-            var shoppingListItem = new ShoppingListItem(_selectedItem.Value, 1);
-            _manager.WantedItems.Add(shoppingListItem);
-            _searchTerm = string.Empty;
-            _selectedItem = null;
-            _manager.SaveList();
-            Svc.Log.Debug($"Added shopping list item: {shoppingListItem.Name}");
+            ImGui.Text("Items will appear here when you enter a search term.");
         }
 
-        ImGui.SameLine();
-        if (ImGui.Button("Clear"))
-        {
-            _selectedItem = null;
-            _searchTerm = string.Empty;
-        }
+        ImGui.EndChild();
     }
 
     private unsafe void DrawMBButton(ShoppingListItem item)
