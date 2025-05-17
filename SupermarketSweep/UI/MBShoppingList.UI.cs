@@ -35,12 +35,15 @@ public class MBShoppingList_UI : NostraWindow
     private SupermarketSweep _manager;
     private FileDialogManager _fileDialogManager;
     private MbShoppingListUiSelector _selector;
+    private ResultsTable _resultsTable;
+    private List<MarketDataListing> _marketData = new();
 
     public MBShoppingList_UI(SupermarketSweep manager) : base("Supermarket Sweep", ImGuiWindowFlags.None, false)
     {
         _manager = manager;
         _fileDialogManager = new FileDialogManager();
         _selector = new MbShoppingListUiSelector(_manager);
+        _resultsTable = new ResultsTable(_manager, _marketData);
         TitleBarButtons.Add(new TitleBarButton()
         {
             AvailableClickthrough = true,
@@ -247,81 +250,11 @@ public class MBShoppingList_UI : NostraWindow
         // If data is present, display it
         if (item.MarketDataResponse != null && !item.IsFetchingData)
         {
-            if (SupermarketSweep.Config.ShowIndividualListings)
-            {
-                OtterGui.ImGuiTable.DrawTable<MarketDataListing>(
-                    $"Market Availability##{item.ItemId}",
-                    item.MarketDataResponse.Listings.OrderBy(l => l.Total),
-                    DrawIndividualRow,
-                    ImGuiTableFlags.Borders | ImGuiTableFlags.Sortable,
-                    "World",
-                    "Quantity",
-                    "Total Price");
-            }
-            else
-            {
-                OtterGui.ImGuiTable.DrawTable<ShoppingListItem.WorldListing>(
-                    $"Market Availability##{item.ItemId}",
-                    item.WorldListings,
-                    DrawRow,
-                    ImGuiTableFlags.Borders | ImGuiTableFlags.Sortable,
-                    "World",
-                    "Lowest Price",
-                    "Total Listings");
-            }
+            var resultsTable = new ResultsTable(_manager, item.MarketDataResponse.Listings);
+            resultsTable.Draw(10);
         }
 
         ImGui.EndChild();
-    }
-
-    private void DrawRow(ShoppingListItem.WorldListing obj)
-    {
-        ImGui.TableSetColumnIndex(0);
-        if (ImGui.Selectable($"{obj.WorldName}"))
-        {
-            if (!Lifestream_IPCSubscriber.IsEnabled)
-            {
-                Svc.Chat.PrintError($"[Reborn Toolbox] LifeStream is required to move between servers");
-                return;
-            }
-
-            _manager.TaskManager.Enqueue(() => Lifestream_IPCSubscriber.ExecuteCommand(obj.WorldName),
-                _manager.LifeStreamTaskConfig);
-            _manager.TaskManager.Enqueue(() => !Lifestream_IPCSubscriber.IsBusy(), _manager.LifeStreamTaskConfig);
-            _manager.TaskManager.Enqueue(GenericHelpers.IsScreenReady);
-            _manager.TaskManager.Enqueue(_manager.QueueMoveToMarketboardTasks);
-        }
-
-        ImGuiEx.Tooltip("Travel using LifeStream");
-        ImGui.TableSetColumnIndex(1);
-        ImGui.Text($"{obj.LowestPrice}");
-        ImGui.TableSetColumnIndex(2);
-        ImGui.Text($"{obj.Count}");
-    }
-
-    private void DrawIndividualRow(MarketDataListing obj)
-    {
-        ImGui.TableSetColumnIndex(0);
-        if (ImGui.Selectable($"{obj.WorldName}"))
-        {
-            if (!Lifestream_IPCSubscriber.IsEnabled)
-            {
-                Svc.Chat.PrintError($"[Reborn Toolbox] LifeStream is required to move between servers");
-                return;
-            }
-
-            _manager.TaskManager.Enqueue(() => Lifestream_IPCSubscriber.ExecuteCommand(obj.WorldName),
-                _manager.LifeStreamTaskConfig);
-            _manager.TaskManager.Enqueue(() => !Lifestream_IPCSubscriber.IsBusy(), _manager.LifeStreamTaskConfig);
-            _manager.TaskManager.Enqueue(GenericHelpers.IsScreenReady);
-            _manager.TaskManager.Enqueue(_manager.QueueMoveToMarketboardTasks);
-        }
-
-        ImGuiEx.Tooltip("Travel using LifeStream");
-        ImGui.TableSetColumnIndex(1);
-        ImGui.Text($"{obj.Quantity}");
-        ImGui.TableSetColumnIndex(2);
-        ImGui.Text($"{obj.Total}");
     }
 
     private unsafe void DrawItemSearch(ShoppingListItem item)
