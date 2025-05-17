@@ -33,14 +33,14 @@
     /// </summary>
     [JsonPropertyName("listings")]
     [SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Setter required for JSON deserialization")]
-    public IList<MarketDataListing> Listings { get; set; } = new List<MarketDataListing>();
+    public List<MarketDataListing> Listings { get; set; } = new List<MarketDataListing>();
 
     /// <summary>
     /// Gets or sets the recent history.
     /// </summary>
     [JsonPropertyName("recentHistory")]
     [SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Setter required for JSON deserialization")]
-    public IList<MarketDataRecentHistory> RecentHistory { get; set; } = new List<MarketDataRecentHistory>();
+    public List<MarketDataRecentHistory> RecentHistory { get; set; } = new List<MarketDataRecentHistory>();
 
     /// <summary>
     /// Gets or sets the average price.

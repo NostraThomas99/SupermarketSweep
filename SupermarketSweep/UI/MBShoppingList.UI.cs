@@ -35,12 +35,15 @@ public class MBShoppingList_UI : NostraWindow
     private SupermarketSweep _manager;
     private FileDialogManager _fileDialogManager;
     private MbShoppingListUiSelector _selector;
+    private ResultsTable _resultsTable;
+    private List<MarketDataListing> _marketData = new();
 
     public MBShoppingList_UI(SupermarketSweep manager) : base("Supermarket Sweep", ImGuiWindowFlags.None, false)
     {
         _manager = manager;
         _fileDialogManager = new FileDialogManager();
         _selector = new MbShoppingListUiSelector(_manager);
+        _resultsTable = new ResultsTable(_manager, _marketData);
         TitleBarButtons.Add(new TitleBarButton()
         {
             AvailableClickthrough = true,
@@ -237,91 +240,14 @@ public class MBShoppingList_UI : NostraWindow
             ImGui.Text("This item cannot be purchased on the Market Board");
         }
 
-        var individualItem = SupermarketSweep.Config.ShowIndividualListings;
-        if (ImGui.Checkbox("Show individual listings", ref individualItem))
-        {
-            SupermarketSweep.Config.ShowIndividualListings = individualItem;
-            EzConfig.Save();
-        }
-
         // If data is present, display it
         if (item.MarketDataResponse != null && !item.IsFetchingData)
         {
-            if (SupermarketSweep.Config.ShowIndividualListings)
-            {
-                OtterGui.ImGuiTable.DrawTable<MarketDataListing>(
-                    $"Market Availability##{item.ItemId}",
-                    item.MarketDataResponse.Listings.OrderBy(l => l.Total),
-                    DrawIndividualRow,
-                    ImGuiTableFlags.Borders | ImGuiTableFlags.Sortable,
-                    "World",
-                    "Quantity",
-                    "Total Price");
-            }
-            else
-            {
-                OtterGui.ImGuiTable.DrawTable<ShoppingListItem.WorldListing>(
-                    $"Market Availability##{item.ItemId}",
-                    item.WorldListings,
-                    DrawRow,
-                    ImGuiTableFlags.Borders | ImGuiTableFlags.Sortable,
-                    "World",
-                    "Lowest Price",
-                    "Total Listings");
-            }
+            var resultsTable = new ResultsTable(_manager, item.MarketDataResponse.Listings);
+            resultsTable.Draw(10);
         }
 
         ImGui.EndChild();
-    }
-
-    private void DrawRow(ShoppingListItem.WorldListing obj)
-    {
-        ImGui.TableSetColumnIndex(0);
-        if (ImGui.Selectable($"{obj.WorldName}"))
-        {
-            if (!Lifestream_IPCSubscriber.IsEnabled)
-            {
-                Svc.Chat.PrintError($"[Reborn Toolbox] LifeStream is required to move between servers");
-                return;
-            }
-
-            _manager.TaskManager.Enqueue(() => Lifestream_IPCSubscriber.ExecuteCommand(obj.WorldName),
-                _manager.LifeStreamTaskConfig);
-            _manager.TaskManager.Enqueue(() => !Lifestream_IPCSubscriber.IsBusy(), _manager.LifeStreamTaskConfig);
-            _manager.TaskManager.Enqueue(GenericHelpers.IsScreenReady);
-            _manager.TaskManager.Enqueue(_manager.QueueMoveToMarketboardTasks);
-        }
-
-        ImGuiEx.Tooltip("Travel using LifeStream");
-        ImGui.TableSetColumnIndex(1);
-        ImGui.Text($"{obj.LowestPrice}");
-        ImGui.TableSetColumnIndex(2);
-        ImGui.Text($"{obj.Count}");
-    }
-
-    private void DrawIndividualRow(MarketDataListing obj)
-    {
-        ImGui.TableSetColumnIndex(0);
-        if (ImGui.Selectable($"{obj.WorldName}"))
-        {
-            if (!Lifestream_IPCSubscriber.IsEnabled)
-            {
-                Svc.Chat.PrintError($"[Reborn Toolbox] LifeStream is required to move between servers");
-                return;
-            }
-
-            _manager.TaskManager.Enqueue(() => Lifestream_IPCSubscriber.ExecuteCommand(obj.WorldName),
-                _manager.LifeStreamTaskConfig);
-            _manager.TaskManager.Enqueue(() => !Lifestream_IPCSubscriber.IsBusy(), _manager.LifeStreamTaskConfig);
-            _manager.TaskManager.Enqueue(GenericHelpers.IsScreenReady);
-            _manager.TaskManager.Enqueue(_manager.QueueMoveToMarketboardTasks);
-        }
-
-        ImGuiEx.Tooltip("Travel using LifeStream");
-        ImGui.TableSetColumnIndex(1);
-        ImGui.Text($"{obj.Quantity}");
-        ImGui.TableSetColumnIndex(2);
-        ImGui.Text($"{obj.Total}");
     }
 
     private unsafe void DrawItemSearch(ShoppingListItem item)
@@ -359,56 +285,40 @@ public class MBShoppingList_UI : NostraWindow
     }
 
     private string _searchTerm = string.Empty;
-    private Item? _selectedItem;
 
     private void DrawItemAdd()
     {
+        ImGui.Text("Item Search");
+        ImGui.SameLine();
         ImGui.InputText("##searchBar", ref _searchTerm, 100);
 
-        if (!string.IsNullOrEmpty(_searchTerm) && _selectedItem is null)
+        ImGui.BeginChild($"ItemList", new Vector2(0, 100), true);
+        if (!string.IsNullOrEmpty(_searchTerm))
         {
-            var matchingItems = SupermarketSweep.MarketableItems.Where(item =>
+            var matchingItems = SupermarketSweep.AllItems.Where(item =>
                 item.Name.ToString().Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
 
             if (matchingItems.Any())
             {
-                ImGui.BeginChild($"ItemList", new Vector2(0, 150), true);
                 foreach (var item in matchingItems)
                 {
                     if (ImGui.Selectable(item.Name.ToString()))
                     {
-                        _selectedItem = item;
-                        _searchTerm = item.Name.ToString();
+                        var wantedItem = new ShoppingListItem(item, 1);
+                        _manager.WantedItems.Add(wantedItem);
+                        _manager.SaveList();
+                        Svc.Log.Debug($"Added shopping list item: {item.Name}");
+                        _searchTerm = string.Empty;
                     }
                 }
-
-                ImGui.EndChild();
             }
         }
-
-        ImGui.SameLine();
-        if (ImGui.Button("Add"))
+        else
         {
-            if (_selectedItem is null)
-            {
-                Svc.Log.Warning("No item to add to shopping list");
-                return;
-            }
-
-            var shoppingListItem = new ShoppingListItem(_selectedItem.Value, 1);
-            _manager.WantedItems.Add(shoppingListItem);
-            _searchTerm = string.Empty;
-            _selectedItem = null;
-            _manager.SaveList();
-            Svc.Log.Debug($"Added shopping list item: {shoppingListItem.Name}");
+            ImGui.Text("Items will appear here when you enter a search term.");
         }
 
-        ImGui.SameLine();
-        if (ImGui.Button("Clear"))
-        {
-            _selectedItem = null;
-            _searchTerm = string.Empty;
-        }
+        ImGui.EndChild();
     }
 
     private unsafe void DrawMBButton(ShoppingListItem item)
