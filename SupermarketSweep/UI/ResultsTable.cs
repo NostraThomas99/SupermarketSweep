@@ -40,6 +40,13 @@ public class ResultsTable : Table<MarketDataListing>
             var price = item.Total / item.Quantity;
             ImGui.Text(price.ToString());
         }
+
+        public override int Compare(MarketDataListing lhs, MarketDataListing rhs)
+        {
+            var lhsPrice = lhs.Total / lhs.Quantity;
+            var rhsPrice = rhs.Total / rhs.Quantity;
+            return lhsPrice.CompareTo(rhsPrice);
+        }
     }
     public class PriceColumn : ColumnString<MarketDataListing>
     {
@@ -52,6 +59,11 @@ public class ResultsTable : Table<MarketDataListing>
         public override void DrawColumn(MarketDataListing item, int _)
         {
             ImGui.Text(item.Total.ToString());
+        }
+
+        public override int Compare(MarketDataListing lhs, MarketDataListing rhs)
+        {
+            return lhs.Total.CompareTo(rhs.Total);
         }
     }
 
