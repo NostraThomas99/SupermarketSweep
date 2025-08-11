@@ -29,8 +29,6 @@ public class SupermarketSweep : IDalamudPlugin
 
     public List<ShoppingListItem> WantedItems = [];
 
-    public Chat Chat;
-
     public TaskManager TaskManager;
 
 #if DEBUG
@@ -58,8 +56,6 @@ public class SupermarketSweep : IDalamudPlugin
             timeLimitMS: Config.LifeStreamTimeout * 1000, showDebug: showDebug);
         DefaultTaskConfig =
             new TaskManagerConfiguration(timeLimitMS: 40000, showDebug: showDebug);
-
-        Chat = new Chat();
 
         TaskManager = new TaskManager(DefaultTaskConfig);
         LoadList();
