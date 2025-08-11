@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using ECommons.Configuration;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using NostraLib;
 using OtterGui;
 

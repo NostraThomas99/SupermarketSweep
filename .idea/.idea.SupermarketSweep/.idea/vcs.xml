@@ -2,6 +2,8 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ECommons" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/NostraLib" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/OtterGui" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/OtterGui/OtterGuiInternal" vcs="Git" />
   </component>
